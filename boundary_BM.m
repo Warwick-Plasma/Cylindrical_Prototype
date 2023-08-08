@@ -22,7 +22,7 @@
 % between. The Smilie default (0,1) introduces terms from the
 % Ampere-Maxwell equation
 
-% Smilie constants I am yet to understand
+% Vary Kx and Kr to get different methods to solve the same equation
 Kx = 0;
 Kr = 1;
 cosphi = Kr / sqrt(Kx^2 + Kr^2);

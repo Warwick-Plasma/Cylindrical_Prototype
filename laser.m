@@ -1,19 +1,3 @@
-% User parameters
-Amp_y_xmin = 1;
-Amp_z_xmin = 0;
-Amp_y_xmax = 0;
-Amp_z_xmax = 0;
-omega = 6.28;
-waist = 5;
-foc_x = 5;
-foc_r = 0;
-t_fwhm = 12;
-t_centre = 0.5 * t_fwhm;
-a0 = 0.00854;
-
-r = 0.4;
-t = 1.0125;
-
 % Derived parameters (amplitudes)
 if las_x_min
     amplitudeY = Amp_y_xmin * a0 * omega;

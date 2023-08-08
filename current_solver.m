@@ -119,10 +119,7 @@ for i = 1:5
 end
 
 % r at t = t0 - dt/2
-% I THINK SMILEI HAS THIS LINE WRONG, AND I THINK IT SHOULD ACTUALLY BE
-% r_bar = ((jpo + deltar)*dr + r_new) * 0.5;
-% Where (jpo + deltar)*dr is equivalent to r_old
-r_bar = (jpo*dr + deltar + r_new) * 0.5; 
+r_bar = ((jpo + deltar)*dr + r_new) * 0.5; 
 
 % 1 / r corresponding to the radius of the centres of the primal cells
 % (normal cell edges). invR_local(3) is 1/r for the primal-centre closest
@@ -189,9 +186,7 @@ end
 
 % Set initial e_delta and e_delta_inv values for m=0 special case Jtheta 
 % calculation. These will be overriden with correct values after m=0
-% I THINK SMILEI HAS THIS LINE WRONG, AND I THINK IT SHOULD ACTUALLY BE
-% e_delta = 0.5;
-e_delta = 1.5;
+e_delta = 0.5;
 e_delta_inv = 0.5;
 
 % exp(i * m * (theta_new + theta_old)/2) for m=0

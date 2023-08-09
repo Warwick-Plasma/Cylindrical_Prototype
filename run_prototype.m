@@ -30,10 +30,10 @@ pol = 0;                     % Polarisation: 0 for Ey, pi/2 for Ez
 
 % Electron species block
 el_ne = 0.000353;           % Electron number density (constant)
-el_x_min = 9.9;             % Initial low-x boundary of e- bunch
+el_x_min = 9.5;             % Initial low-x boundary of e- bunch
 el_x_max = 10.0;            % Initial high-x boundary of e- bunch
 el_r_min = 0.0;             % Initial low-r boundary of e- bunch
-el_r_max = 0.1;             % Initial high-r boundary of e- bunch
+el_r_max = 0.5;             % Initial high-r boundary of e- bunch
 el_ppc = 5;                 % Number of electrons per cell
 el_drift_vx = -0.999975;    % Drift of electrons [units of c]
 el_temp = 2.0e-3;           % Random p-drift between 0 and this [unit me*c]
@@ -58,8 +58,9 @@ while t < t_end
         fields_to_particles;
         particle_push;
         current_solver;
-        current_BCs;
     end
+    current_BCs;
+    stop
 
     % Update fields
     save_B_old;

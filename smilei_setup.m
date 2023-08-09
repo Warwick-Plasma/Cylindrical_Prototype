@@ -54,6 +54,14 @@ weight = zeros(1,npart);
 invgf = zeros(1,npart);   % 1/gamma (Lorentz)
 in_sim = true(1,npart);
 
+% Fields on particles
+Ex = zeros(1,npart);
+Ey = zeros(1,npart);
+Ez = zeros(1,npart);
+Bx = zeros(1,npart);
+By = zeros(1,npart);
+Bz = zeros(1,npart);
+
 % All particles are electrons, charge -1, mass 1 in SMILEI units
 charge = -1;
 mass = 1;

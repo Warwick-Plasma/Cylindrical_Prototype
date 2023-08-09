@@ -50,11 +50,6 @@ Jl_p = zeros(1,5);
 Jr_p = zeros(1,5);
 C_m = 1;
 
-% Reset current densities
-Jxm = zeros(nx+6, nr+5, n_mode);
-Jrm = zeros(nx+5, nr+6, n_mode);
-Jtm = zeros(nx+5, nr+5, n_mode);
-
 %% Locate particles & calculate Esirkepov coef. S, DS and W
 
 % Locate the particle on the primal grid at former time-step & calculate coeff. S0
@@ -94,7 +89,7 @@ xpn = pos_x(ipart) / dx;
 ipo = ip;
 ip = round(xpn)+3;
 ip_m_ipo = ip - ipo;
-delta = xpn - ip;
+delta = xpn - (ip-3);
 delta2 = delta^2;
 Sl1(ip_m_ipo+2) = 0.5 * (delta2 - delta + 0.25);
 Sl1(ip_m_ipo+3) = 0.75 - delta2;
@@ -104,7 +99,7 @@ ypn = r_new / dr;
 jpo = jp;
 jp = round(ypn)+3;
 jp_m_jpo = jp - jpo;
-delta  = ypn - jp;
+delta  = ypn - (jp-3);
 delta2 = delta^2;
 Sr1(jp_m_jpo+2) = 0.5 * (delta2 - delta + 0.25);
 Sr1(jp_m_jpo+3) = 0.75 - delta2;
@@ -119,12 +114,13 @@ for i = 1:5
 end
 
 % r at t = t0 - dt/2
-r_bar = ((jpo + deltar)*dr + r_new) * 0.5; 
+r_bar = (((jpo-3) + deltar)*dr + r_new) * 0.5; 
 
 % 1 / r corresponding to the radius of the centres of the primal cells
 % (normal cell edges). invR_local(3) is 1/r for the primal-centre closest
 % to the old r-position
-cell_r = abs((jpo-2)*dr:dr:(jpo+2)*dr);
+% (jpo-3)*dr is the radius of the closest r-cell-edge to original positon
+cell_r = abs(((jpo-3)-2)*dr:dr:((jpo-3)+2)*dr);
 for ir = 1:5
     if cell_r(ir) == 0
         % Smilei gives comment: "No Verboncoeur correction"
@@ -198,7 +194,7 @@ for j = 1:5
     Sr1(j) = Sr1(j) * invR_local(j);
 end
 
-% Currently ipo and jpo correspond to primal cell 3 in header diagram
+% Currently ipo and jpo correspond to primal cell 3 in header diagram.
 % Here we change this so they represent cell 0, such that ipo+i for i=1:5
 % yields primal cells 1:5
 % E.g. lowest ipo = 3 (particle always starts in window), then ipo goes to
@@ -208,8 +204,7 @@ jpo = jpo-3;
 
 %% Perform current calculation
 
-% The current modes calculated in this section are missing a 1/(2*pi) 
-% prefactor 
+% SMILEI ERROR: CURRENT MODES MISSING *(0.5/PI) FACTOR
 
 for im = 0:n_mode-1
     % Method used for m=0 Jt is different to m>0 Jt, here we set values for

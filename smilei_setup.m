@@ -1,6 +1,8 @@
 % smilei_setup.m
 % Create field arrays, load particles
 
+imagi = sqrt(-1);
+
 % Initialise field and current mode arrays
 Jxm = zeros(nx+6, nr+5, n_mode);
 Jrm = zeros(nx+5, nr+6, n_mode);
@@ -13,6 +15,14 @@ Etm = zeros(nx+5, nr+5, n_mode);
 Bxm = zeros(nx+5, nr+6, n_mode);
 Brm = zeros(nx+6, nr+5, n_mode);
 Btm = zeros(nx+6, nr+6, n_mode);
+
+Bxm_old = zeros(nx+5, nr+6, n_mode);
+Brm_old = zeros(nx+6, nr+5, n_mode);
+Btm_old = zeros(nx+6, nr+6, n_mode);
+
+Bxm_mid = zeros(nx+5, nr+6, n_mode);
+Brm_mid = zeros(nx+6, nr+5, n_mode);
+Btm_mid = zeros(nx+6, nr+6, n_mode);
 
 % Geometric grid parameters
 cell_r_min = 0:dr:(nr-1)*dr;
@@ -41,10 +51,12 @@ pos_x = zeros(1,npart);
 pos_y = zeros(1,npart);
 pos_z = zeros(1,npart);
 weight = zeros(1,npart);
-charge = zeros(1,npart);
+invgf = zeros(1,npart);   % 1/gamma (Lorentz)
+in_sim = true(1,npart);
 
-% All particles are electrons, charge -1 in SMILEI units
+% All particles are electrons, charge -1, mass 1 in SMILEI units
 charge = -1;
+mass = 1;
 
 % Set positions of macro-particles
 ipart = 1;
@@ -59,7 +71,7 @@ for ix = ix_min:ix_max
             pos_z(ipart) = pos_r * sin(pos_th);
 
             % Let particle weight scale linearly with r
-            weight(ipart) = real_part_no *pos_r;
+            weight(ipart) = pos_r;
             ipart = ipart+1;
         end
 

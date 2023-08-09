@@ -1,11 +1,6 @@
-% void ProjectorAM2Order::currents(   ElectroMagnAM *emAM, 
-%                                     Particles &particles, 
-%                                     unsigned int ipart,
-%                                     double invgf, 
-%                                     int *iold, 
-%                                     double *deltaold, 
-%                                     std::complex<double> *array_eitheta_old, 
-%                                     bool diag_flag, int ispec)
+% current_solver.m
+% This script is called by the PIC loop, along with a particle index ipart.
+% Here we write the particle currents to the grid parameters Jxm, Jrm, Jtm.
 
 % Current stagger in the bottom-left cell in the simulation grid
 %   |                            |
@@ -38,11 +33,11 @@
 
 % Multiply this by 1/r to get charge*weight/cell_volume for a cell centred
 % at r
-QWr_over_V = charge(ipart) * weight(ipart) / (2*pi*dx*dr);
+QWr_over_V = charge * weight(ipart) / (2*pi*dx*dr);
 
 % Collect constant terms for calculating current densities
 crl_p = QWr_over_V * dx / dt;
-crr_p = QWe_over_V / dt;
+crr_p = QWr_over_V / dt;
 
 % Arrays used for the Esirkepov projection method
 Sl0 = zeros(1,5);
@@ -54,6 +49,11 @@ DSr = zeros(1,5);
 Jl_p = zeros(1,5);
 Jr_p = zeros(1,5);
 C_m = 1;
+
+% Reset current densities
+Jxm = zeros(nx+6, nr+5, n_mode);
+Jrm = zeros(nx+5, nr+6, n_mode);
+Jtm = zeros(nx+5, nr+5, n_mode);
 
 %% Locate particles & calculate Esirkepov coef. S, DS and W
 
@@ -80,7 +80,7 @@ theta_old = conj(exp_m_theta);
 
 % exp(i*theta_new)
 r_new = sqrt(pos_y(ipart)^2 + pos_z(ipart)^2);
-eitheta = (pos_y(ipart) + Icpx * pos_z(ipart)) / r_new;
+eitheta = (pos_y(ipart) + imagi * pos_z(ipart)) / r_new;
 
 % exp(i * (theta_new - theta_old)/2)
 % std::sqrt and MATLAB sqrt keeps the root with positive real part which is what we need here.
@@ -92,7 +92,7 @@ e_bar_m1 = theta_old * e_delta_m1;
 % Locate the particle on the primal grid at current time-step & calculate coeff. S1
 xpn = pos_x(ipart) / dx;
 ipo = ip;
-ip = round(xpn);
+ip = round(xpn)+3;
 ip_m_ipo = ip - ipo;
 delta = xpn - ip;
 delta2 = delta^2;
@@ -102,7 +102,7 @@ Sl1(ip_m_ipo+4) = 0.5 * (delta2 + delta + 0.25);
 
 ypn = r_new / dr;
 jpo = jp;
-jp = round(ypn);
+jp = round(ypn)+3;
 jp_m_jpo = jp - jpo;
 delta  = ypn - jp;
 delta2 = delta^2;
@@ -136,13 +136,13 @@ end
 
 % 1 / r corresponding to the radius of primal cell-edges, shifted +0.5*dr
 % from invR_local
-invRd = 1.0 / (cell_r + 0.5*dr);
+invRd = 1.0 ./ (cell_r + 0.5*dr);
 
 %% Pre-calculate terms for current calculation
 
 % Initial value of crt_p for imode = 0.
 % Q * W * r * p_theta / gamma / V
-crt_p = QWr_over_V * (pz(ipart)*real(e_bar_m1) - py(ipart)*imag(e_bar_m1)) * inv_gf(ipart);
+crt_p = QWr_over_V * (pz(ipart)*real(e_bar_m1) - py(ipart)*imag(e_bar_m1)) * invgf(ipart);
 
 % Compute everything which has no theta dependence
 tmpJl = zeros(1,5);
@@ -198,21 +198,29 @@ for j = 1:5
     Sr1(j) = Sr1(j) * invR_local(j);
 end
 
+% Currently ipo and jpo correspond to primal cell 3 in header diagram
+% Here we change this so they represent cell 0, such that ipo+i for i=1:5
+% yields primal cells 1:5
+% E.g. lowest ipo = 3 (particle always starts in window), then ipo goes to
+% 0, such that ipo+i ranges 1:5 - including the lowest ghost cell 1.
+ipo = ipo-3;
+jpo = jpo-3;
+
 %% Perform current calculation
 
 % The current modes calculated in this section are missing a 1/(2*pi) 
 % prefactor 
 
-for imode = 0:Nmode-1
+for im = 0:n_mode-1
     % Method used for m=0 Jt is different to m>0 Jt, here we set values for
     % m>0
-    if imode > 0
+    if im > 0
         e_delta = e_delta * e_delta_m1;
         e_bar = e_bar * e_bar_m1;
         e_delta_inv = 1.0 / e_delta - 1.0;
         
         % New Jt pre-factor - calculation for m>0 assumes small dtheta
-        crt_p = charge_weight * Icpx * e_bar / (dt * imode) * 2.0 * r_bar;
+        crt_p = charge * weight(ipart) * imagi * e_bar / (dt * im) * 2.0 * r_bar;
 
         % Multiply modes > 0 by 2 and C_m = 1 otherwise.
         C_m = 2.0 * e_bar; 
@@ -223,7 +231,7 @@ for imode = 0:Nmode-1
     for i = 2:5
         for j=1:5
             % C_m (Lifschitz) * [x-weight-change] * [perp. current density]
-            Jxm(ipo+i,jpo+j,imode+1) = Jxm(ipo+i,jpo+j,imode+1) + C_m * Jl_p(i) * tmpJl(j);
+            Jxm(ipo+i,jpo+j,im+1) = Jxm(ipo+i,jpo+j,im+1) + C_m * Jl_p(i) * tmpJl(j);
         end
     end
 
@@ -231,21 +239,21 @@ for imode = 0:Nmode-1
     for i = 1:5
         for j = 2:5
             % C_m (Lifschitz) * [mean-x-weight] * [r current density]
-            Jrm(ipo+i,jpo+j,imode+1) = Jrm(ipo+i,jpo+j,imode+1) + C_m * (Sl0(i) + 0.5*DSl(i)) * Jr_p(j) ;
+            Jrm(ipo+i,jpo+j,im+1) = Jrm(ipo+i,jpo+j,im+1) + C_m * (Sl0(i) + 0.5*DSl(i)) * Jr_p(j) ;
         end 
     end
 
     % Jt^(p,p)
     for i = 1:5
         for j = 1:5
-            % When m=0, [crt_p: Q * W * r * p_theta / gamma / V] * [0.5 * (cell_weight_new + cell_weight_old) / r] => only if typo is present
+            % When m=0, [crt_p: Q * W * r * p_theta / gamma / V] * [0.5 * (cell_weight_new + cell_weight_old) / r]
             % When m>0, small angle approx reduces expression to: Cm * [QW/V] * [v_theta: mean_r * dtheta / dt] * [0.5 * (cell_weight_new + cell_weight_old)]
-            Jtm(ipo+i,jpo+j,imode+1) = Jtm(ipo+i,jpo+j,imode+1) + crt_p * (Sr1(j)*Sl1(j)*e_delta_inv - Sr0(j)*Sl0(i)*(e_delta-1.0));
+            Jtm(ipo+i,jpo+j,im+1) = Jtm(ipo+i,jpo+j,im+1) + crt_p * (Sr1(j)*Sl1(j)*e_delta_inv - Sr0(j)*Sl0(i)*(e_delta-1.0));
         end
     end
 
     % Restore e_delta correct initial value, after m=0 special case
-    if imode == 0 
+    if im == 0 
         e_delta = 1.0;
     end
 end
